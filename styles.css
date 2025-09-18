@@ -1,0 +1,314 @@
+body {
+    font-family: 'Georgia', serif;
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-size: 18px;
+}
+
+body.light-mode {
+    background: linear-gradient(to bottom, #f0f4f8, #ffffff);
+    color: #817e7e;
+}
+
+body.dark-mode {
+    background: linear-gradient(to bottom, #1a1a2e, #16213e);
+    color: #e6e6e6;
+}
+
+.container {
+    max-width: 1300px;
+    margin: 50px auto;
+    padding: 30px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 25px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .container {
+    background-color: rgba(26, 26, 46, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+    font-size: 4em;
+    margin-bottom: 50px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode h1 {
+    color: #a3bffa;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.mode-switch {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+#modeToggle {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#modeToggle:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+label {
+    display: block;
+    margin: 30px 0 15px;
+    font-weight: bold;
+    color: #34495e;
+    font-size: 1.5em;
+}
+
+body.dark-mode label {
+    color: #a3bffa;
+}
+
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #dfe4ea;
+    border-radius: 15px;
+    font-size: 1.3em;
+    resize: vertical;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background-color: #fff;
+    height: 100px; /* Reduced height */
+}
+
+body.dark-mode textarea {
+    border-color: #4a5d78;
+    background-color: #2a2e40;
+    color: #e6e6e6;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
+}
+
+body.dark-mode textarea:focus {
+    border-color: #a3bffa;
+    box-shadow: 0 0 15px rgba(163, 191, 250, 0.3);
+}
+
+.center {
+    text-align: center;
+    margin: 40px 0;
+}
+
+button {
+    padding: 20px 50px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.7em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    box-shadow: 0 5px 10px rgba(0, 123, 255, 0.3);
+}
+
+body.dark-mode button {
+    background-color: #a3bffa;
+}
+
+button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+    box-shadow: 0 7px 15px rgba(0, 123, 255, 0.4);
+}
+
+body.dark-mode button:hover {
+    background-color: #829ed9;
+    box-shadow: 0 7px 15px rgba(163, 191, 250, 0.4);
+}
+
+button:active {
+    transform: scale(1);
+    box-shadow: 0 3px 6px rgba(0, 123, 255, 0.2);
+}
+
+.output {
+    margin-top: 60px;
+    background-color: #fff;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+    padding: 35px;
+    transition: opacity 0.5s ease;
+}
+
+body.dark-mode .output {
+    background-color: #252a41;
+}
+
+.slide {
+    display: flex;
+    width: auto;
+    gap: 40px;
+}
+
+.theoretical, .graph {
+    flex: 1;
+    min-width: 400px;
+    padding: 30px;
+    background-color: #f9fbfc;
+    border-radius: 15px;
+    box-sizing: border-box;
+    box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode .theoretical, body.dark-mode .graph {
+    background-color: #2e2f44;
+}
+
+.theoretical h2, .graph h2 {
+    color: #2c3e50;
+    font-size: 2.2em;
+    margin-bottom: 30px;
+}
+
+body.dark-mode .theoretical h2, body.dark-mode .graph h2 {
+    color: #a3bffa;
+}
+
+canvas {
+    border: 2px solid #dfe4ea;
+    border-radius: 15px;
+    background-color: #fff;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    height: 650px;
+}
+
+body.dark-mode canvas {
+    border-color: #4a5d78;
+    background-color: #2a2e40;
+}
+
+#theory {
+    font-size: 1.6em;
+    line-height: 2;
+}
+
+body.dark-mode #theory {
+    color: #e6e6e6;
+}
+
+#theory table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+#theory table th, #theory table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+body.dark-mode #theory table th, body.dark-mode #theory table td {
+    border-color: #4a5d78;
+}
+
+#theory table th {
+    background-color: #f2f2f2;
+}
+
+body.dark-mode #theory table th {
+    background-color: #3a3f58;
+}
+
+#theory img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 15px;
+    margin-top: 25px;
+}
+
+.output::-webkit-scrollbar {
+    height: 12px;
+}
+
+.output::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 6px;
+}
+
+body.dark-mode .output::-webkit-scrollbar-track {
+    background: #2e2f44;
+}
+
+.output::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 6px;
+}
+
+body.dark-mode .output::-webkit-scrollbar-thumb {
+    background: #4a5d78;
+}
+
+.output::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+body.dark-mode .output::-webkit-scrollbar-thumb:hover {
+    background: #829ed9;
+}
+
+@media (max-width: 768px) {
+    .slide {
+        flex-direction: column;
+    }
+
+    canvas {
+        height: 450px;
+    }
+
+    h1 {
+        font-size: 3em;
+    }
+
+    label, textarea, button {
+        font-size: 1.2em;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 20px;
+        font-size: 16px;
+    }
+
+    button {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .output {
+        padding: 20px;
+    }
+
+    .theoretical, .graph {
+        padding: 20px;
+    }
+
+    canvas {
+        height: 350px;
+    }
+}

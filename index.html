@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Math Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="light-mode">
+    <div class="container">
+        <h1>Math Calculator</h1>
+
+        <!-- Dark/Light Mode Toggle -->
+        <div class="mode-switch">
+            <button id="modeToggle">Toggle Dark Mode</button>
+        </div>
+
+        <!-- Input -->
+        <label for="input">Enter math expressions (e.g., sin(x), x^2, e^(2*x)):</label>
+        <textarea id="input" rows="3" placeholder="e.g., sin(x)\ne^(2*x)\nx^2"></textarea>
+
+        <!-- Calculate Button -->
+        <div class="center">
+            <button id="calculate">Calculate</button>
+        </div>
+
+        <!-- Output -->
+        <div class="output">
+            <div class="slide">
+                <div class="theoretical">
+                    <h2>Theoretical Solution</h2>
+                    <div id="theory"></div>
+                </div>
+                <div class="graph">
+                    <h2>Graph</h2>
+                    <canvas id="graphCanvas" width="600" height="600"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries and Script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.9.0/math.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
