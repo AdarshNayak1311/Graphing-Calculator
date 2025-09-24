@@ -1,11 +1,13 @@
-let currentScale = 60;
-let offsetX = 0;
-let offsetY = 0;
+
+let currentScale = 60; 
+let offsetX = 0;       
+let offsetY = 0;       
 let functions = [];
 let colors = ['#ff0000', '#00ff00', '#0000ff', '#ff00ff', '#00ffff', '#ffff00'];
+
 let dragging = false;
-let startDragX = 0;
-let startDragY = 0;
+let lastClientX = 0;
+let lastClientY = 0;
 
 const canvas = document.getElementById('graphCanvas');
 const ctx = canvas.getContext('2d');
@@ -16,175 +18,206 @@ const outputDiv = document.querySelector('.output');
 const modeToggle = document.getElementById('modeToggle');
 const body = document.body;
 
-// Zooming
-canvas.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const zoomFactor = 1 - e.deltaY * 0.001;
-    currentScale *= zoomFactor;
-    currentScale = Math.min(Math.max(currentScale, 20), 200); // limits
-    drawAll();
-});
+function fitCanvasAndGetSize() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const cssW = rect.width || canvas.clientWidth || 600;
+    const cssH = rect.height || canvas.clientHeight || 600;
+    
+    canvas.width = Math.max(1, Math.round(cssW * dpr));
+    canvas.height = Math.max(1, Math.round(cssH * dpr));
+    
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
 
-// Dragging
-canvas.addEventListener('mousedown', (e) => {
-    dragging = true;
-    startDragX = e.clientX;
-    startDragY = e.clientY;
-});
+    return { w: cssW, h: cssH, dpr };
+}
 
-canvas.addEventListener('mousemove', (e) => {
-    if (dragging) {
-        offsetX += (e.clientX - startDragX) / currentScale;
-        offsetY += (startDragY - e.clientY) / currentScale;
-        startDragX = e.clientX;
-        startDragY = e.clientY;
+function scrollToOutput() {
+    outputDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+function calculate() {
+    const input = inputTextarea.value.trim();
+    theoryDiv.innerHTML = '';
+    functions = [];
+
+    if (input === '') {
+        theoryDiv.innerHTML = '<p>Please enter math expressions. Try simple terms like x^2, sin(x), e^(2*x).</p>';
         drawAll();
+        scrollToOutput();
+        return;
     }
-});
 
-canvas.addEventListener('mouseup', () => { dragging = false; });
-canvas.addEventListener('mouseleave', () => { dragging = false; });
+    const lines = input.split('\n').map(l => l.trim()).filter(l => l !== '');
+    let hasSomething = false;
 
-// Enter key triggers calculation
+    lines.forEach((rawExpr, index) => {
+        let expr = rawExpr.replace(/y\s*=/i, '').trim();
+        
+        expr = expr.replace(/\be\b/g, 'e');           
+        expr = expr.replace(/\bpi\b/gi, 'pi');        
+
+        const isFunc = /\bx\b/i.test(expr);
+
+        try {
+            if (!isFunc) {
+                
+                const constVal = math.evaluate(expr);
+                const fobj = { evaluate: () => constVal };
+                functions.push({ f: fobj, color: colors[index % colors.length] });
+                theoryDiv.innerHTML += `<p>The expression "${rawExpr}" is a constant: ${constVal} (horizontal line).</p>`;
+           
+                let table = '<table><tr><th>x</th><th>f(x)</th></tr>';
+                for (let xVal = -2; xVal <= 2; xVal++) {
+                    table += `<tr><td>${xVal}</td><td>${constVal.toFixed(4)}</td></tr>`;
+                }
+                table += '</table>';
+                theoryDiv.innerHTML += table;
+                hasSomething = true;
+            } else {
+                
+                const compiled = math.compile(expr);
+                functions.push({ f: compiled, color: colors[index % colors.length] });
+                theoryDiv.innerHTML += `<p style="color:${colors[index % colors.length]}">f(x) = ${rawExpr}</p>`;
+   
+                let table = '<table><tr><th>x</th><th>f(x)</th></tr>';
+                for (let xVal = -2; xVal <= 2; xVal++) {
+                    let fx;
+                    try {
+                        fx = compiled.evaluate({ x: xVal });
+                        if (!isFinite(fx)) table += `<tr><td>${xVal}</td><td>NaN</td></tr>`;
+                        else table += `<tr><td>${xVal}</td><td>${Number(fx).toFixed(4)}</td></tr>`;
+                    } catch {
+                        table += `<tr><td>${xVal}</td><td>NaN</td></tr>`;
+                    }
+                }
+                table += '</table>';
+                theoryDiv.innerHTML += table;
+                hasSomething = true;
+            }
+        } catch (err) {
+            theoryDiv.innerHTML += `<p>Error with "${rawExpr}": ${err.message}</p>`;
+        }
+    });
+
+    if (!hasSomething) {
+        theoryDiv.innerHTML += '<p>No valid functions found.</p>';
+    }
+
+    drawAll();
+    scrollToOutput();
+}
+
+calculateButton.addEventListener('click', calculate);
+
 inputTextarea.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        calculateButton.click();
+        calculate();
     }
 });
 
-// Toggle dark/light mode
 modeToggle.addEventListener('click', () => {
     body.classList.toggle('dark-mode');
     body.classList.toggle('light-mode');
     drawAll();
 });
 
-// Scroll to output
-function scrollToOutput() {
-    outputDiv.scrollIntoView({ behavior: 'smooth' });
-}
+canvas.addEventListener('mousedown', (e) => {
+    dragging = true;
+    lastClientX = e.clientX;
+    lastClientY = e.clientY;
+    canvas.style.cursor = 'grabbing';
+    
+    if (canvas.setPointerCapture) try { canvas.setPointerCapture(e.pointerId); } catch {}
+});
 
-// Calculate & parse expressions
-const calculate = function() {
-    const input = inputTextarea.value.trim();
-    theoryDiv.innerHTML = '';
-    functions = [];
+canvas.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastClientX;
+    const dy = e.clientY - lastClientY;
+   
+    offsetX += dx / currentScale;
+    offsetY += dy / currentScale;
 
-    if (input === '') {
-        theoryDiv.innerHTML = '<p>Please enter math expressions. Try simple terms like x^2 for x squared, sin(x) for sine, or e^(2*x) for an exponential.</p>';
-        drawAll();
-        scrollToOutput();
-        return;
-    }
-
-    const lines = input.split('\n').map(line => line.trim()).filter(line => line !== '');
-    let hasFunction = false;
-
-    lines.forEach((rawExpr, index) => {
-        let expr = rawExpr.replace(/y\s*=/, '').trim();
-
-        // Replace constants
-        expr = expr.replace(/\be\b/g, 'E');       // math.js constant e
-        expr = expr.replace(/\bpi\b/gi, 'pi');    // math.js constant pi
-
-        let isFunc = expr.toLowerCase().includes('x');
-
-        try {
-            let f;
-
-            if (!isFunc) {
-                // Constant: create a function that returns this value
-                const constantValue = math.evaluate(expr);
-                f = function(x) { return constantValue; };
-
-                theoryDiv.innerHTML += `<p>The expression "${rawExpr}" is a constant: ${constantValue}. It will be plotted as a horizontal line.</p>`;
-                hasFunction = true;
-            } else {
-                // Normal function: compile with math.js
-                f = math.compile(expr);
-                theoryDiv.innerHTML += `<p style="color: ${colors[index % colors.length]};">The function f(x) = ${rawExpr} describes a relationship where x determines y:</p>`;
-                hasFunction = true;
-            }
-
-            // Add to functions array for plotting
-            functions.push({ f, color: colors[index % colors.length] });
-
-            // Create table for x = -2 to 2
-            let table = '<table><tr><th>x</th><th>f(x)</th></tr>';
-            for (let xVal = -2; xVal <= 2; xVal++) {
-                let fx;
-                try {
-                    fx = isFunc ? f.evaluate({ x: xVal }) : f(xVal);
-                    table += `<tr><td>${xVal}</td><td>${fx.toFixed(4)}</td></tr>`;
-                } catch {
-                    table += `<tr><td>${xVal}</td><td>NaN</td></tr>`;
-                }
-            }
-            table += '</table>';
-            theoryDiv.innerHTML += table;
-        } catch (e) {
-            theoryDiv.innerHTML += `<p>Error with "${rawExpr}": ${e.message}. Check your syntax.</p>`;
-        }
-    });
-
-    if (!hasFunction) {
-        ctx.font = '20px Arial';
-        ctx.fillText('No graph to display.', 20, 300);
-    }
-
+    lastClientX = e.clientX;
+    lastClientY = e.clientY;
     drawAll();
-    scrollToOutput();
-};
+});
 
-calculateButton.addEventListener('click', calculate);
+canvas.addEventListener('mouseup', (e) => {
+    dragging = false;
+    canvas.style.cursor = 'default';
+    if (canvas.releasePointerCapture) try { canvas.releasePointerCapture(e.pointerId); } catch {}
+});
+canvas.addEventListener('mouseleave', () => {
+    dragging = false;
+    canvas.style.cursor = 'default';
+});
 
-// Draw grid and axes
-function drawGrid() {
-    const w = canvas.width;
-    const h = canvas.height;
-    const step = currentScale;
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
 
-    ctx.clearRect(0, 0, w, h);
+    const { w, h } = fitCanvasAndGetSize();
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const oldScale = currentScale;
+    
+    const zoomFactor = Math.exp(-e.deltaY * 0.0012); 
+    let newScale = oldScale * zoomFactor;
+    newScale = Math.max(20, Math.min(200, newScale)); 
+  
+    const centerX = w / 2;
+    const centerY = h / 2;
+
+    offsetX = offsetX + (mouseX - centerX) * (1 / newScale - 1 / oldScale);
+    offsetY = offsetY + (centerY - mouseY) * (1 / newScale - 1 / oldScale);
+
+    currentScale = newScale;
+    drawAll();
+}, { passive: false });
+
+
+window.addEventListener('resize', () => {
+    drawAll();
+});
+
+function drawGrid(w, h) {    
     ctx.fillStyle = body.classList.contains('dark-mode') ? '#252a41' : '#f0f0f0';
     ctx.fillRect(0, 0, w, h);
 
-    ctx.strokeStyle = '#ccc';
+    const step = currentScale; 
+    const originX = w / 2 + offsetX * currentScale;
+    const originY = h / 2 + offsetY * currentScale;
+    
+    ctx.strokeStyle = body.classList.contains('dark-mode') ? '#3b3f57' : '#e0e0e0';
     ctx.lineWidth = 1;
-
-    const originX = w/2 + offsetX*currentScale;
-    const originY = h/2 + offsetY*currentScale;
-
-    // Vertical grid
-    for (let x = originX % step; x < w; x += step) {
+    
+    const startV = Math.floor(( -originX ) / step) - 1;
+    const endV = Math.ceil((w - originX) / step) + 1;
+    for (let i = startV; i <= endV; i++) {
+        const x = originX + i * step;
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, h);
         ctx.stroke();
     }
-    for (let x = originX % step; x > 0; x -= step) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-    }
-
-    // Horizontal grid
-    for (let y = originY % step; y < h; y += step) {
+    
+    const startH = Math.floor(( -originY ) / step) - 1;
+    const endH = Math.ceil((h - originY) / step) + 1;
+    for (let j = startH; j <= endH; j++) {
+        const y = originY + j * step;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(w, y);
         ctx.stroke();
     }
-    for (let y = originY % step; y > 0; y -= step) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-    }
-
-    // Axes
-    ctx.strokeStyle = '#000';
+    
+    ctx.strokeStyle = body.classList.contains('dark-mode') ? '#e6e6e6' : '#000';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(originX, 0);
@@ -193,67 +226,90 @@ function drawGrid() {
     ctx.lineTo(w, originY);
     ctx.stroke();
 
-    // Axis numbers
-    ctx.font = '16px Arial';
+    
+    ctx.font = '14px Arial';
     ctx.fillStyle = body.classList.contains('dark-mode') ? '#e6e6e6' : '#000';
-    const xStart = Math.floor(-offsetX - w/(2*currentScale));
-    const xEnd = Math.ceil(-offsetX + w/(2*currentScale));
-    const yStart = Math.floor(-offsetY - h/(2*currentScale));
-    const yEnd = Math.ceil(-offsetY + h/(2*currentScale));
 
-    for (let i = xStart; i <= xEnd; i++) {
-        if (i === 0) continue;
-        const px = originX + i*currentScale;
-        ctx.fillText(i, px - 8, originY + 20);
+    
+    const xStart = Math.floor(-offsetX - w / (2 * currentScale));
+    const xEnd = Math.ceil(-offsetX + w / (2 * currentScale));
+    for (let xi = xStart; xi <= xEnd; xi++) {
+        if (xi === 0) continue;
+        const px = originX + xi * currentScale;
+        ctx.fillText(xi.toString(), px - 8, originY + 18);
     }
-    for (let i = yStart; i <= yEnd; i++) {
-        if (i === 0) continue;
-        const py = originY - i*currentScale;
-        ctx.fillText(i, originX + 10, py + 5);
+
+    const yStart = Math.floor(-offsetY - h / (2 * currentScale));
+    const yEnd = Math.ceil(-offsetY + h / (2 * currentScale));
+    for (let yi = yStart; yi <= yEnd; yi++) {
+        if (yi === 0) continue;
+        const py = originY - yi * currentScale;
+        ctx.fillText(yi.toString(), originX + 8, py + 6);
     }
 }
 
-// Plot functions
-function plotFunction(f, color) {
-    const w = canvas.width;
-    const h = canvas.height;
-    const xMin = -w / (2 * currentScale) - offsetX;
-    const xMax = w / (2 * currentScale) - offsetX;
-    const step = (xMax - xMin) / w;
+function plotFunction(f, color, w, h) {
+    const originX = w / 2 + offsetX * currentScale;
+    const originY = h / 2 + offsetY * currentScale;
 
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     ctx.beginPath();
 
     let first = true;
-    for (let px = 0; px < w; px++) {
-        const x = xMin + px * step;
-        let y;
-        try {
-            // Use evaluate() if it exists (math.js), otherwise call function
-            y = typeof f.evaluate === 'function' ? f.evaluate({ x }) : f(x);
+    let lastPy = null;
 
-            if (isNaN(y) || y === Infinity || y === -Infinity) continue;
+    for (let px = 0; px < Math.ceil(w); px++) {
+        
+        const mathX = (px - originX) / currentScale;
+
+        let yVal;
+        try {
+            
+            if (typeof f.evaluate === 'function') yVal = f.evaluate({ x: mathX });
+            else yVal = f(mathX);
         } catch {
+            yVal = NaN;
+        }
+
+        if (!isFinite(yVal)) {
+            
+            first = true;
+            lastPy = null;
             continue;
         }
 
-        const py = h / 2 - (y + offsetY) * currentScale;
-        if (py < -1000 || py > h + 1000) continue;
-
+        const py = originY - yVal * currentScale;
+        
+        if (py < -10000 || py > 10000) {
+            first = true;
+            lastPy = null;
+            continue;
+        }
         if (first) {
-            ctx.moveTo(px, py);
+            ctx.moveTo(px + 0.5, py + 0.5); 
             first = false;
         } else {
-            ctx.lineTo(px, py);
+            
+            if (lastPy !== null && Math.abs(py - lastPy) > 200) {
+                ctx.moveTo(px + 0.5, py + 0.5);
+            } else {
+                ctx.lineTo(px + 0.5, py + 0.5);
+            }
         }
+        lastPy = py;
     }
+
     ctx.stroke();
 }
 
-// Draw everything
 function drawAll() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawGrid();
-    functions.forEach(funcObj => plotFunction(funcObj.f, funcObj.color));
+    const { w, h } = fitCanvasAndGetSize();
+    
+    drawGrid(w, h);
+  
+    for (const fo of functions) {
+        plotFunction(fo.f, fo.color, w, h);
+    }
 }
+drawAll();
